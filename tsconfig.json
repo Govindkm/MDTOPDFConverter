@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",           // Target modern JavaScript (Node 16+ support)
+    "module": "ESNext",           // Use modern ES modules
+    "moduleResolution": "node",      // Use Node.js module resolution (compatible)
+    "outDir": "./dist",           // Output compiled JS to dist folder
+    "rootDir": "./src",           // Source files location
+    "strict": true,               // Enable all strict type checking
+    "esModuleInterop": true,      // Better compatibility with CommonJS modules
+    "allowSyntheticDefaultImports": true, // Allow default imports from modules
+    "skipLibCheck": true,         // Skip type checking of declaration files (faster builds)
+    "forceConsistentCasingInFileNames": true, // Enforce consistent file naming
+    "declaration": true,          // Generate .d.ts files
+    "declarationMap": true,       // Generate source maps for .d.ts files
+    "sourceMap": true,            // Generate source maps for debugging
+    "resolveJsonModule": true,    // Allow importing JSON files
+    "baseUrl": "./src",           // Base directory for module resolution
+    "paths": {                    // Path mapping for cleaner imports
+      "@/*": ["*"],
+      "@/cli/*": ["cli/*"],
+      "@/core/*": ["core/*"],
+      "@/types/*": ["types/*"],
+      "@/utils/*": ["utils/*"]
+    }
+  },
+  "include": [
+    "src/**/*"                    // Include all files in src directory
+  ],
+  "exclude": [
+    "node_modules",               // Exclude dependencies
+    "dist",                       // Exclude build output
+    "tests/**/*.test.ts"          // Exclude test files from compilation
+  ]
+}

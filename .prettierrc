@@ -1,0 +1,10 @@
+{
+  "semi": true,                   // Always use semicolons
+  "trailingComma": "es5",        // Trailing commas where valid in ES5
+  "singleQuote": true,           // Use single quotes
+  "printWidth": 80,              // Line length limit
+  "tabWidth": 2,                 // 2 spaces for indentation
+  "useTabs": false,              // Use spaces, not tabs
+  "bracketSpacing": true,        // Spaces in object literals: { foo: bar }
+  "arrowParens": "avoid"         // Avoid parens in arrow functions when possible
+}

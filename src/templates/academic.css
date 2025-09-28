@@ -1,0 +1,128 @@
+/* Sample Academic Template */
+/* Usage: mdtopdf convert file.md -t src/templates/academic.css */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Times New Roman", Times, serif;
+  line-height: 1.8;
+  color: #000000;
+  background-color: #ffffff;
+  font-size: 12pt;
+  margin: 0;
+  padding: 0;
+}
+
+.document {
+  padding: 1in;
+  max-width: 100%;
+}
+
+/* Title and headers */
+h1 {
+  font-family: Arial, sans-serif;
+  font-size: 18pt;
+  font-weight: bold;
+  text-align: center;
+  margin: 0 0 24pt 0;
+  page-break-after: avoid;
+}
+
+h2 {
+  font-family: Arial, sans-serif;
+  font-size: 14pt;
+  font-weight: bold;
+  margin: 18pt 0 12pt 0;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-family: Arial, sans-serif;
+  font-size: 12pt;
+  font-weight: bold;
+  margin: 12pt 0 6pt 0;
+  page-break-after: avoid;
+}
+
+/* Paragraphs */
+p {
+  margin: 0 0 12pt 0;
+  text-align: justify;
+  orphans: 3;
+  widows: 3;
+}
+
+/* Lists */
+ul, ol {
+  margin: 0 0 12pt 0;
+  padding-left: 36pt;
+}
+
+li {
+  margin-bottom: 6pt;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12pt auto;
+  font-size: 10pt;
+}
+
+table th,
+table td {
+  border: 1px solid #000000;
+  padding: 6pt 12pt;
+  text-align: left;
+}
+
+table th {
+  background-color: #f0f0f0;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Code blocks */
+pre {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 10pt;
+  background-color: #f5f5f5;
+  border: 1px solid #cccccc;
+  padding: 12pt;
+  margin: 12pt 0;
+  page-break-inside: avoid;
+}
+
+code {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 10pt;
+  background-color: #f5f5f5;
+  padding: 2pt 4pt;
+  border: 1px solid #cccccc;
+}
+
+/* Blockquotes */
+blockquote {
+  margin: 12pt 36pt;
+  font-style: italic;
+  border-left: 3px solid #cccccc;
+  padding-left: 12pt;
+}
+
+/* Print optimizations */
+@media print {
+  .document {
+    padding: 0.75in;
+  }
+  
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+  
+  pre, table {
+    page-break-inside: avoid;
+  }
+}

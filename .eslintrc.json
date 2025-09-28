@@ -1,0 +1,34 @@
+{
+  "env": {
+    "node": true,                 // Enable Node.js global variables
+    "es2022": true               // Enable ES2022 syntax
+  },
+  "extends": [
+    "eslint:recommended",         // Basic ESLint rules
+    "@typescript-eslint/recommended", // TypeScript-specific rules
+    "prettier"                    // Disable rules that conflict with Prettier
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",       // Use ES modules
+    "project": "./tsconfig.json"
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "prettier"
+  ],
+  "rules": {
+    "prettier/prettier": "error", // Show Prettier issues as ESLint errors
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/explicit-function-return-type": "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "prefer-const": "error",      // Encourage immutability
+    "no-var": "error"            // Prevent var usage
+  },
+  "ignorePatterns": [
+    "dist/",
+    "node_modules/",
+    "*.js"                        // Ignore compiled JS files
+  ]
+}
