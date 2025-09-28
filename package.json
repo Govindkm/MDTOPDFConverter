@@ -1,6 +1,6 @@
 {
   "name": "@govindkm/mdtopdf-converter",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "A powerful CLI tool for converting Markdown and HTML files to PDF with 10 built-in templates, dark theme support, and custom template management",
   "main": "dist/cli/index.js",
   "bin": {
