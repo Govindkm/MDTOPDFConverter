@@ -1,0 +1,67 @@
+# Source files
+src/
+tsconfig.json
+.eslintrc.*
+.prettierrc
+.husky/
+
+# Development files
+*.log
+node_modules/
+coverage/
+.nyc_output/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files (if you don't want to include them)
+tests/
+jest.config.js
+*.test.*
+*.spec.*
+
+# Build artifacts (keep dist/)
+# dist/  <- Don't ignore this, we need it!
+
+# Local development files
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+
+# Documentation source files (keep main docs)
+# README.md  <- Keep this
+# TEMPLATE_GUIDE.md  <- Keep this
+# LICENSE  <- Keep this
+
+# Example and demo files
+examples/
+*.pdf
+*.md
+!README.md
+!TEMPLATE_GUIDE.md
+!MARGIN_FIX_COMPLETE.md
+!DARK_THEME_SOLUTION.md
+
+# CSS files (these are demo files)
+*.css
+
+# Git files
+.git/
+.gitignore
