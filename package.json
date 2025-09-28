@@ -23,10 +23,16 @@
     "prepublishOnly": "npm run build",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:ci": "npm run build && node dist/cli/index.js --version && node dist/cli/index.js --help",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "version:patch": "npm version patch && git push origin master --follow-tags",
+    "version:minor": "npm version minor && git push origin master --follow-tags",
+    "version:major": "npm version major && git push origin master --follow-tags",
+    "check-version": "node -p \"'Local: ' + require('./package.json').version\" && echo \"NPM: $(npm view @govindkm/mdtopdf-converter version 2>/dev/null || echo 'not published')\"",
+    "release": "npm run build && npm run test:ci && npm publish --access=public"
   },
   "keywords": [
     "markdown",

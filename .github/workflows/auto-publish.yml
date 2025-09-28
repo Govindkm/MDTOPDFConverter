@@ -1,0 +1,197 @@
+name: 📦 Auto Publish to NPM
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'package.json'
+
+jobs:
+  auto-publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2  # Fetch current and previous commit for comparison
+      
+    - name: 🔍 Verify Version Change in package.json
+      id: package-check
+      run: |
+        # Check if package.json version actually changed
+        if git diff HEAD~1 HEAD --name-only | grep -q "^package\.json$"; then
+          echo "📝 package.json was modified in this commit"
+          
+          # Extract version from current and previous package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          
+          # Get previous version (if exists)
+          PREVIOUS_VERSION=$(git show HEAD~1:package.json 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version" 2>/dev/null || echo "unknown")
+          
+          echo "current-package-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "previous-package-version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
+          
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "version-changed-in-commit=true" >> $GITHUB_OUTPUT
+            echo "✅ Version changed in package.json: $PREVIOUS_VERSION → $CURRENT_VERSION"
+          else
+            echo "version-changed-in-commit=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ package.json modified but version unchanged: $CURRENT_VERSION"
+          fi
+        else
+          echo "version-changed-in-commit=false" >> $GITHUB_OUTPUT
+          echo "ℹ️ package.json was not modified in this commit"
+        fi
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        registry-url: 'https://registry.npmjs.org'
+        
+    - name: 📦 Install Dependencies
+      run: npm ci
+      
+    - name: 🔧 Build Project
+      run: npm run build
+      
+    - name: 🔍 Check Version Change
+      id: version
+      run: |
+        CURRENT_VERSION=$(node -p "require('./package.json').version")
+        echo "📋 Current package.json version: $CURRENT_VERSION"
+        
+        # Get the currently published version from npm
+        PUBLISHED_VERSION=$(npm view @govindkm/mdtopdf-converter version 2>/dev/null || echo "0.0.0")
+        echo "📦 Published npm version: $PUBLISHED_VERSION"
+        
+        # Set outputs for later steps
+        echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+        echo "published-version=$PUBLISHED_VERSION" >> $GITHUB_OUTPUT
+        
+        # Only publish if versions are different
+        if [ "$CURRENT_VERSION" != "$PUBLISHED_VERSION" ]; then
+          echo "should-publish=true" >> $GITHUB_OUTPUT
+          echo "🆕 Version change detected! Will publish $CURRENT_VERSION (currently published: $PUBLISHED_VERSION)"
+        else
+          echo "should-publish=false" >> $GITHUB_OUTPUT
+          echo "⏹️ No version change detected. Current version $CURRENT_VERSION is already published."
+          echo "::notice::No version change detected - skipping publish"
+        fi
+        
+        # Validate version format (semantic versioning)
+        if ! echo "$CURRENT_VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\.-]+)?$'; then
+          echo "❌ Invalid version format: $CURRENT_VERSION"
+          echo "Expected format: x.y.z or x.y.z-prerelease"
+          exit 1
+        fi
+        
+    - name: ⏹️ Skip Publishing - No Version Change
+      if: steps.package-check.outputs.version-changed-in-commit == 'false'
+      run: |
+        echo "::notice::Skipping publish - no version change detected in this commit"
+        echo "🔄 This workflow only publishes when the version in package.json changes"
+        echo "💡 To publish a new version:"
+        echo "   1. Update version in package.json (e.g., 1.0.1 → 1.0.2)"
+        echo "   2. Commit and push the change"
+        echo "   3. This workflow will automatically publish to npm"
+        
+    - name: 🧪 Quick Test
+      if: steps.package-check.outputs.version-changed-in-commit == 'true' && steps.version.outputs.should-publish == 'true'
+      run: |
+        echo "Testing CLI functionality..."
+        node dist/cli/index.js --version
+        node dist/cli/index.js --help
+        echo "✅ CLI tests passed"
+        
+    - name: 🚀 Publish to NPM
+      if: steps.package-check.outputs.version-changed-in-commit == 'true' && steps.version.outputs.should-publish == 'true'
+      run: |
+        echo "🚀 Publishing version ${{ steps.version.outputs.current-version }} to NPM..."
+        echo "📋 Version change: ${{ steps.package-check.outputs.previous-package-version }} → ${{ steps.version.outputs.current-version }}"
+        npm publish --access=public
+        echo "✅ Successfully published version ${{ steps.version.outputs.current-version }}!"
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        
+    - name: 🏷️ Create Release Tag
+      if: steps.package-check.outputs.version-changed-in-commit == 'true' && steps.version.outputs.should-publish == 'true'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const version = '${{ steps.version.outputs.current-version }}';
+          const tagName = `v${version}`;
+          
+          try {
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/${tagName}`,
+              sha: context.sha
+            });
+            
+            console.log(`✅ Created tag: ${tagName}`);
+          } catch (error) {
+            if (error.status === 422) {
+              console.log(`ℹ️ Tag ${tagName} already exists`);
+            } else {
+              throw error;
+            }
+          }
+          
+    - name: 📝 Update Release Notes
+      if: steps.package-check.outputs.version-changed-in-commit == 'true' && steps.version.outputs.should-publish == 'true'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const version = '${{ steps.version.outputs.current-version }}';
+          const tagName = `v${version}`;
+          
+          const releaseBody = `## 🚀 Auto-Release v${version}
+          
+          ### 📦 Installation
+          \`\`\`bash
+          npm install -g @govindkm/mdtopdf-converter
+          \`\`\`
+          
+          ### ✨ Features
+          - 🎨 10 Professional Templates (5 light + 5 dark)
+          - 🌙 True Dark Theme PDFs with zero margins
+          - 📁 Batch Processing with glob patterns
+          - 🛠️ Custom Template System
+          - ⚙️ Configuration Management
+          - 🔧 TypeScript + Modern Architecture
+          
+          ### 🚀 Quick Start
+          \`\`\`bash
+          # Convert with dark theme
+          mdtopdf convert document.md -t github-dark
+          
+          # List templates
+          mdtopdf templates list
+          
+          # Batch convert
+          mdtopdf convert *.md -o pdfs/
+          \`\`\`
+          
+          ---
+          
+          **🤖 This release was automatically published by GitHub Actions**`;
+          
+          try {
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tagName,
+              name: `Release v${version}`,
+              body: releaseBody,
+              draft: false,
+              prerelease: false
+            });
+            
+            console.log(`✅ Created release: ${tagName}`);
+          } catch (error) {
+            console.log(`⚠️ Release creation failed: ${error.message}`);
+          }

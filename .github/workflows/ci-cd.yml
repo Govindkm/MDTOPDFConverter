@@ -1,0 +1,177 @@
+name: 🚀 CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  release:
+    types: [ published ]
+
+jobs:
+  # Test and Build Job
+  test-and-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: 📦 Install Dependencies
+      run: npm ci
+      
+    - name: 🔧 Build TypeScript
+      run: npm run build
+      
+    - name: 🧪 Test CLI Functionality
+      run: |
+        # Test basic commands
+        node dist/cli/index.js --help
+        node dist/cli/index.js --version
+        node dist/cli/index.js templates list
+        node dist/cli/index.js config show
+        
+        # Create test markdown file
+        echo "# Test Document" > test.md
+        echo "This is a test for CI/CD pipeline." >> test.md
+        
+        # Test conversion (without actual PDF generation to avoid browser issues in CI)
+        echo "✅ CLI functionality tests passed"
+        
+    - name: 📋 Verify Package Structure
+      run: |
+        npm pack --dry-run
+        echo "✅ Package structure verified"
+
+  # Publish to NPM (only on version tag or manual trigger)
+  publish-npm:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish]'))
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        registry-url: 'https://registry.npmjs.org'
+        
+    - name: 📦 Install Dependencies
+      run: npm ci
+      
+    - name: 🔧 Build Project
+      run: npm run build
+      
+    - name: 🔍 Check if Version Changed
+      id: version-check
+      run: |
+        PACKAGE_VERSION=$(node -p "require('./package.json').version")
+        NPM_VERSION=$(npm view @govindkm/mdtopdf-converter version 2>/dev/null || echo "0.0.0")
+        echo "Package version: $PACKAGE_VERSION"
+        echo "NPM version: $NPM_VERSION"
+        
+        if [ "$PACKAGE_VERSION" != "$NPM_VERSION" ]; then
+          echo "version-changed=true" >> $GITHUB_OUTPUT
+          echo "new-version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Version changed from $NPM_VERSION to $PACKAGE_VERSION"
+        else
+          echo "version-changed=false" >> $GITHUB_OUTPUT
+          echo "ℹ️ Version unchanged: $PACKAGE_VERSION"
+        fi
+        
+    - name: 🚀 Publish to NPM
+      if: steps.version-check.outputs.version-changed == 'true'
+      run: npm publish --access=public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        
+    - name: 🏷️ Create Git Tag
+      if: steps.version-check.outputs.version-changed == 'true' && github.event_name != 'release'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a "v${{ steps.version-check.outputs.new-version }}" -m "Release v${{ steps.version-check.outputs.new-version }}"
+        git push origin "v${{ steps.version-check.outputs.new-version }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 📢 Create Release Notes
+      if: steps.version-check.outputs.version-changed == 'true' && github.event_name != 'release'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.version-check.outputs.new-version }}
+        release_name: Release v${{ steps.version-check.outputs.new-version }}
+        body: |
+          ## 🚀 Release v${{ steps.version-check.outputs.new-version }}
+          
+          ### 📦 Installation
+          ```bash
+          npm install -g @govindkm/mdtopdf-converter
+          ```
+          
+          ### 🎯 Features
+          - 10 Professional Templates (5 light + 5 dark)
+          - True Dark Theme PDFs
+          - Batch Processing
+          - Custom Template System
+          - Configuration Management
+          
+          ### 📋 Usage
+          ```bash
+          mdtopdf convert document.md -t github-dark
+          mdtopdf templates list
+          mdtopdf config show
+          ```
+          
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ steps.version-check.outputs.new-version }}...HEAD
+        draft: false
+        prerelease: false
+
+  # Security and Quality Checks
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: 📦 Install Dependencies
+      run: npm ci
+      
+    - name: 🔒 Security Audit
+      run: npm audit --audit-level=moderate
+      
+    - name: 📊 Check Package Size
+      run: |
+        SIZE=$(npm pack --dry-run 2>/dev/null | grep "package size" | awk '{print $3}')
+        echo "📦 Package size: $SIZE"
+        
+        # Alert if package is larger than 100KB
+        SIZE_NUM=$(echo $SIZE | sed 's/[^0-9.]//g')
+        UNIT=$(echo $SIZE | sed 's/[0-9.]//g' | tr -d ' ')
+        
+        if [ "$UNIT" = "MB" ] || ([ "$UNIT" = "kB" ] && [ $(echo "$SIZE_NUM > 100" | bc -l) -eq 1 ]); then
+          echo "⚠️ Package size is large: $SIZE"
+        else
+          echo "✅ Package size is acceptable: $SIZE"
+        fi
